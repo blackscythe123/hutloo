@@ -1,0 +1,170 @@
+{% extends "layout.html" %}
+
+{% block title %}Analytics Dashboard - Hatloo{% endblock %}
+
+{% block head_extra %}
+<style>
+    .stats-card {
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+    .chart-container {
+        height: 350px;
+        margin-bottom: 30px;
+    }
+    .metrics-row {
+        margin-bottom: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <h2 class="mb-4"><i class="fas fa-chart-line me-2"></i>Analytics Dashboard</h2>
+    
+    <!-- Key Metrics -->
+    <div class="row metrics-row">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <span class="stat-value">{{ orders_today }}</span>
+                <span class="stat-label">Orders Today</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <span class="stat-value">{{ orders_week }}</span>
+                <span class="stat-label">Orders This Week</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <span class="stat-value">{{ deliveries_completed_today }}</span>
+                <span class="stat-label">Deliveries Today</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <span class="stat-value">{{ avg_delivery_time }}</span>
+                <span class="stat-label">Avg. Delivery Time (hours)</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="content-card">
+                <h4 class="mb-3">Daily Order Volume</h4>
+                <div class="chart-container">
+                    <canvas id="orders-by-day-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="content-card">
+                <h4 class="mb-3">Order Status Distribution</h4>
+                <div class="chart-container">
+                    <canvas id="status-distribution-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="content-card">
+                <h4 class="mb-3">Driver Performance</h4>
+                <div class="chart-container">
+                    <canvas id="driver-performance-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="content-card h-100">
+                <h4 class="mb-3">Active Resources</h4>
+                <div class="d-flex flex-column justify-content-center h-100">
+                    <div class="stat-card">
+                        <span class="stat-value">{{ active_drivers }}</span>
+                        <span class="stat-label">Available Drivers</span>
+                    </div>
+                    <div class="stat-card mt-3">
+                        <span class="stat-value">{{ deliveries_completed_week }}</span>
+                        <span class="stat-label">Weekly Deliveries</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Insights Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="content-card">
+                <h4 class="mb-3">Key Insights</h4>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-dark h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">Busiest Day</h5>
+                                {% set max_orders = 0 %}
+                                {% set busiest_day = "" %}
+                                {% for day in orders_by_day %}
+                                    {% if day.count > max_orders %}
+                                        {% set max_orders = day.count %}
+                                        {% set busiest_day = day.date %}
+                                    {% endif %}
+                                {% endfor %}
+                                <p class="card-text">
+                                    <span class="text-primary">{{ busiest_day }}</span> with <span class="text-primary">{{ max_orders }}</span> orders
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-dark h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">Average Delivery Time</h5>
+                                <p class="card-text">
+                                    <span class="text-primary">{{ avg_delivery_time }}</span> hours from pickup to delivery
+                                </p>
+                                <p class="text-muted small">Calculated from {{ deliveries_completed_week }} deliveries this week</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-dark h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">Pending Orders</h5>
+                                {% set pending_count = status_data.data[status_data.labels.index('pending')] if 'pending' in status_data.labels else 0 %}
+                                <p class="card-text">
+                                    <span class="text-primary">{{ pending_count }}</span> orders awaiting assignment
+                                </p>
+                                {% if active_drivers > 0 %}
+                                    <p class="text-muted small">{{ active_drivers }} drivers available for assignment</p>
+                                {% else %}
+                                    <p class="text-danger small">No drivers currently available</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden data for charts -->
+<div id="orders-by-day-data" style="display: none;">{{ orders_by_day | tojson }}</div>
+<div id="status-data" style="display: none;">{{ status_data | tojson }}</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize analytics dashboard
+        initAnalyticsDashboard();
+    });
+</script>
+{% endblock %}

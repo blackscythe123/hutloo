@@ -1,0 +1,357 @@
+/* Hatloo - Logistics Optimization Website
+   Dark themed style for the application */
+
+:root {
+  --primary: #007bff;
+  --secondary: #6c757d;
+  --success: #28a745;
+  --danger: #dc3545;
+  --warning: #ffc107;
+  --info: #17a2b8;
+  --dark: #1e2124;
+  --darker: #141618;
+  --light-gray: #343a40;
+  --medium-gray: #2a2e33;
+  --text-primary: #f8f9fa;
+  --text-secondary: #adb5bd;
+  --border-color: #2d3238;
+}
+
+body {
+  background-color: var(--dark);
+  color: var(--text-primary);
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navbar styling */
+.navbar {
+  background-color: var(--darker) !important;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--primary) !important;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+  color: var(--text-secondary);
+  transition: color 0.3s;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: var(--primary);
+}
+
+.navbar-dark .navbar-nav .active > .nav-link {
+  color: var(--primary);
+}
+
+/* Container styling */
+.main-container {
+  flex: 1;
+  padding: 30px 15px;
+}
+
+.content-card {
+  background-color: var(--light-gray);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card {
+  background-color: var(--light-gray);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+  background-color: var(--medium-gray);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+}
+
+.card-footer {
+  background-color: var(--medium-gray);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Form styling */
+.form-control {
+  background-color: var(--darker);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.form-control:focus {
+  background-color: var(--darker);
+  border-color: var(--primary);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: #0069d9;
+  border-color: #0062cc;
+}
+
+/* Table styling */
+.table {
+  color: var(--text-primary);
+}
+
+.table-dark {
+  background-color: var(--light-gray);
+}
+
+.table-dark thead th {
+  background-color: var(--medium-gray);
+  border-color: var(--border-color);
+}
+
+.table-dark tbody td {
+  border-color: var(--border-color);
+}
+
+/* Dashboard components */
+.dashboard-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 200px;
+  background-color: var(--light-gray);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-card .stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 5px;
+}
+
+/* Status indicators */
+.status-badge {
+  padding: 5px 10px;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background-color: #ffc10750;
+  color: #ffc107;
+}
+
+.status-assigned {
+  background-color: #17a2b850;
+  color: #17a2b8;
+}
+
+.status-in-transit {
+  background-color: #007bff50;
+  color: #007bff;
+}
+
+.status-delivered {
+  background-color: #28a74550;
+  color: #28a745;
+}
+
+.status-cancelled {
+  background-color: #dc354550;
+  color: #dc3545;
+}
+
+/* Map container */
+#map-container {
+  height: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+/* Timeline styling */
+.timeline {
+  position: relative;
+  margin: 30px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 20px;
+  width: 2px;
+  background-color: var(--border-color);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 30px;
+  padding-left: 45px;
+}
+
+.timeline-badge {
+  position: absolute;
+  top: 0;
+  left: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  border: 3px solid var(--light-gray);
+  z-index: 1;
+}
+
+.timeline-panel {
+  background-color: var(--medium-gray);
+  border-radius: 8px;
+  padding: 15px;
+  position: relative;
+}
+
+.timeline-panel:before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: -10px;
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-right: 10px solid var(--medium-gray);
+}
+
+.timeline-title {
+  margin-top: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.timeline-date {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+}
+
+/* Login and Registration Pages */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 110px);
+}
+
+.auth-form-card {
+  background-color: var(--light-gray);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  padding: 30px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.auth-logo {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.auth-logo h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0;
+}
+
+.auth-form-card .form-group {
+  margin-bottom: 20px;
+}
+
+/* Footer styling */
+footer {
+  background-color: var(--darker);
+  border-top: 1px solid var(--border-color);
+  padding: 15px 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stat-card {
+    min-width: calc(50% - 15px);
+  }
+  
+  .dashboard-charts {
+    flex-direction: column;
+  }
+  
+  .chart-container {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 576px) {
+  .stat-card {
+    min-width: 100%;
+  }
+  
+  .main-container {
+    padding: 15px 10px;
+  }
+  
+  .content-card {
+    padding: 15px;
+  }
+}

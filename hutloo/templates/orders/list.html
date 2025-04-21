@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+
+{% block title %}My Orders - Hatloo{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-clipboard-list me-2"></i>My Orders</h2>
+        <a href="{{ url_for('orders.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Create New Order
+        </a>
+    </div>
+    
+    {% if orders %}
+    <div class="table-responsive">
+        <table class="table table-dark">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Created</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Status</th>
+                    <th>Scheduled Delivery</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_number }}</td>
+                    <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ order.pickup_address | truncate(30) }}</td>
+                    <td>{{ order.delivery_address | truncate(30) }}</td>
+                    <td>
+                        <span class="status-badge status-{{ order.status }}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if order.scheduled_delivery %}
+                            {{ order.scheduled_delivery.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            Not scheduled
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('orders.track', order_number=order.order_number) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-map-marker-alt"></i> Track
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-box-open fa-4x text-secondary mb-3"></i>
+        <h4>No orders found</h4>
+        <p class="text-muted">You haven't created any orders yet.</p>
+        <a href="{{ url_for('orders.create') }}" class="btn btn-primary mt-3">
+            <i class="fas fa-plus-circle me-2"></i>Create Your First Order
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="order-details-content">
+                    <!-- Order details will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-primary" id="track-order-btn">Track Order</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Function to load order details in the modal
+    function loadOrderDetails(orderId) {
+        // This functionality could be implemented in the future
+        // For now, it just redirects to track
+        window.location.href = `/orders/track?order_number=${orderId}`;
+    }
+</script>
+{% endblock %}

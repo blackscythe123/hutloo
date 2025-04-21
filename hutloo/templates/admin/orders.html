@@ -1,0 +1,257 @@
+{% extends "layout.html" %}
+
+{% block title %}Manage Orders - Hatloo{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <h2 class="mb-4"><i class="fas fa-clipboard-list me-2"></i>Manage Orders</h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" class="form-control" id="orderSearchInput" placeholder="Search orders...">
+                <button class="btn btn-outline-primary" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="d-flex justify-content-end">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-filter me-1"></i> Filter by Status
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-status="all">All Orders</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" data-status="pending">Pending</a></li>
+                        <li><a class="dropdown-item" href="#" data-status="assigned">Assigned</a></li>
+                        <li><a class="dropdown-item" href="#" data-status="in_transit">In Transit</a></li>
+                        <li><a class="dropdown-item" href="#" data-status="delivered">Delivered</a></li>
+                        <li><a class="dropdown-item" href="#" data-status="cancelled">Cancelled</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if orders %}
+    <div class="table-responsive">
+        <table class="table table-dark" id="ordersTable">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Created</th>
+                    <th>Pickup</th>
+                    <th>Delivery</th>
+                    <th>Status</th>
+                    <th>Driver</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr data-status="{{ order.status }}">
+                    <td>{{ order.order_number }}</td>
+                    <td>{{ order.customer.username }}</td>
+                    <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ order.pickup_address | truncate(25) }}</td>
+                    <td>{{ order.delivery_address | truncate(25) }}</td>
+                    <td>
+                        <span class="status-badge status-{{ order.status }}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if order.assigned_driver %}
+                            {{ order.assigned_driver.user.username }}
+                        {% else %}
+                            <span class="text-muted">Not assigned</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="{{ url_for('orders.track', order_number=order.order_number) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-map-marker-alt"></i> Track
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="visually-hidden">Toggle Dropdown</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if not order.assigned_driver and order.status == 'pending' %}
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#assignDriverModal" data-order-id="{{ order.id }}">Assign Driver</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#orderDetailsModal" data-order-id="{{ order.id }}">View Details</a></li>
+                                {% if order.status != 'delivered' and order.status != 'cancelled' %}
+                                <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#cancelOrderModal" data-order-id="{{ order.id }}">Cancel Order</a></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No orders found.</div>
+    {% endif %}
+</div>
+
+<!-- Assign Driver Modal -->
+<div class="modal fade" id="assignDriverModal" tabindex="-1" aria-labelledby="assignDriverModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignDriverModalLabel">Assign Driver</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignDriverForm" method="POST">
+                    <div class="mb-3">
+                        <label for="driverId" class="form-label">Select Driver</label>
+                        <select class="form-select" id="driverId" name="driver_id" required>
+                            <option value="" selected disabled>Choose a driver...</option>
+                            {% for driver in drivers if driver.status == 'available' %}
+                            <option value="{{ driver.id }}">{{ driver.user.username }} ({{ driver.license_number }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Assign Driver</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="order-details-content">
+                    <!-- Order details will be loaded here -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Loading order details...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-primary" id="track-order-btn">Track Order</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Order Modal -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelOrderModalLabel">Cancel Order</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel this order? This action cannot be undone.</p>
+                <form id="cancelOrderForm" method="POST">
+                    <div class="mb-3">
+                        <label for="cancelReason" class="form-label">Reason for Cancellation</label>
+                        <textarea class="form-control" id="cancelReason" name="cancel_reason" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" id="confirmCancelBtn">Cancel Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle order search
+        const searchInput = document.getElementById('orderSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#ordersTable tbody tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // Handle status filter
+        const statusLinks = document.querySelectorAll('[data-status]');
+        statusLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const status = this.getAttribute('data-status');
+                const rows = document.querySelectorAll('#ordersTable tbody tr');
+                
+                rows.forEach(row => {
+                    if (status === 'all' || row.getAttribute('data-status') === status) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+        
+        // Handle assign driver modal
+        const assignDriverModal = document.getElementById('assignDriverModal');
+        if (assignDriverModal) {
+            assignDriverModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const orderId = button.getAttribute('data-order-id');
+                const form = document.getElementById('assignDriverForm');
+                form.action = `/admin/assign-order/${orderId}/`;
+                
+                // Update form action when driver is selected
+                const driverSelect = document.getElementById('driverId');
+                driverSelect.addEventListener('change', function() {
+                    form.action = `/admin/assign-order/${orderId}/${this.value}`;
+                });
+            });
+        }
+        
+        // Handle cancel order modal
+        const cancelOrderModal = document.getElementById('cancelOrderModal');
+        if (cancelOrderModal) {
+            cancelOrderModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const orderId = button.getAttribute('data-order-id');
+                const form = document.getElementById('cancelOrderForm');
+                form.action = `/admin/cancel-order/${orderId}`;
+                
+                // Handle confirm cancel button
+                const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+                confirmCancelBtn.addEventListener('click', function() {
+                    form.submit();
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

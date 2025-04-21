@@ -1,0 +1,462 @@
+{% extends "layout.html" %}
+
+{% block title %}Driver Dashboard - Hatloo{% endblock %}
+
+{% block head_extra %}
+<style>
+    #driver-map {
+        height: 400px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .driver-stats {
+        margin-bottom: 30px;
+    }
+    .order-card {
+        margin-bottom: 15px;
+    }
+    .order-card .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="alerts-container">
+    <!-- Alerts will be added here if needed -->
+</div>
+
+<div class="content-card">
+    <h2 class="mb-4"><i class="fas fa-tachometer-alt me-2"></i>Driver Dashboard</h2>
+    
+    <div class="driver-stats">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <span class="stat-value">{{ assigned_count }}</span>
+                    <span class="stat-label">Assigned Orders</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <span class="stat-value">{{ in_transit_count }}</span>
+                    <span class="stat-label">In Transit</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <span class="stat-value">{{ completed_count }}</span>
+                    <span class="stat-label">Completed Deliveries</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Driver's status and information -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="content-card">
+                <h4 class="mb-3"><i class="fas fa-user-circle me-2"></i>Driver Information</h4>
+                <table class="table table-dark table-sm">
+                    <tbody>
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ driver.user.username }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="status-badge status-{{ driver.status }}">
+                                    {{ driver.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>License:</th>
+                            <td>{{ driver.license_number }}</td>
+                        </tr>
+                        <tr>
+                            <th>Vehicle:</th>
+                            <td>
+                                {% if driver.vehicle %}
+                                    {{ driver.vehicle.type.capitalize() }} ({{ driver.vehicle.license_plate }})
+                                {% else %}
+                                    <span class="text-muted">No vehicle assigned</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="d-grid gap-2 mt-3">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
+                        <i class="fas fa-sync-alt me-2"></i>Update Status
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="content-card h-100">
+                <h4 class="mb-3"><i class="fas fa-map-marked-alt me-2"></i>Current Location</h4>
+                <div id="driver-map" data-driver-id="{{ driver.id }}"></div>
+                <p class="text-muted text-center mt-2">
+                    <small>Your location is automatically updated every minute while the app is open.</small>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assigned orders section -->
+    <div class="row">
+        <div class="col-12">
+            <h3 class="mb-3"><i class="fas fa-clipboard-list me-2"></i>Assigned Orders</h3>
+            
+            {% if assigned_orders or in_transit_orders %}
+                {% if assigned_orders %}
+                <h5 class="text-muted mb-3">Ready for Pickup</h5>
+                {% for order in assigned_orders %}
+                <div class="card order-card">
+                    <div class="card-header">
+                        <span>Order #{{ order.order_number }}</span>
+                        <span class="status-badge status-{{ order.status }}">{{ order.status }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Pickup:</strong> {{ order.pickup_address }}</p>
+                                <p><strong>Scheduled Pickup:</strong> 
+                                    {% if order.scheduled_pickup %}
+                                        {{ order.scheduled_pickup.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        Flexible
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Delivery:</strong> {{ order.delivery_address }}</p>
+                                <p><strong>Scheduled Delivery:</strong> 
+                                    {% if order.scheduled_delivery %}
+                                        {{ order.scheduled_delivery.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        Flexible
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <p><strong>Package:</strong> {{ order.package_weight }} kg</p>
+                                <p><strong>Description:</strong> {{ order.package_description or 'None provided' }}</p>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <a href="{{ url_for('orders.track', order_number=order.order_number) }}" class="btn btn-outline-primary me-2">
+                                    <i class="fas fa-map-marker-alt me-1"></i> View Route
+                                </a>
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#startDeliveryModal" data-order-id="{{ order.id }}">
+                                    <i class="fas fa-truck me-1"></i> Start Delivery
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+                
+                {% if in_transit_orders %}
+                <h5 class="text-muted mb-3 mt-4">In Transit</h5>
+                {% for order in in_transit_orders %}
+                <div class="card order-card">
+                    <div class="card-header">
+                        <span>Order #{{ order.order_number }}</span>
+                        <span class="status-badge status-{{ order.status }}">{{ order.status }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Pickup:</strong> {{ order.pickup_address }}</p>
+                                <p><strong>Actual Pickup:</strong> 
+                                    {% if order.actual_pickup %}
+                                        {{ order.actual_pickup.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        Not recorded
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Delivery:</strong> {{ order.delivery_address }}</p>
+                                <p><strong>Scheduled Delivery:</strong> 
+                                    {% if order.scheduled_delivery %}
+                                        {{ order.scheduled_delivery.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        Flexible
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <p><strong>Package:</strong> {{ order.package_weight }} kg</p>
+                                <p><strong>Description:</strong> {{ order.package_description or 'None provided' }}</p>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <a href="{{ url_for('orders.track', order_number=order.order_number) }}" class="btn btn-outline-primary me-2">
+                                    <i class="fas fa-map-marker-alt me-1"></i> View Route
+                                </a>
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#completeDeliveryModal" data-order-id="{{ order.id }}">
+                                    <i class="fas fa-check-circle me-1"></i> Complete Delivery
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>You have no assigned orders at the moment.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Recent completed deliveries -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-3"><i class="fas fa-check-circle me-2"></i>Recent Completed Deliveries</h3>
+            
+            {% if completed_orders %}
+            <div class="table-responsive">
+                <table class="table table-dark">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Pickup</th>
+                            <th>Delivery</th>
+                            <th>Completed</th>
+                            <th>Delivery Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in completed_orders %}
+                        <tr>
+                            <td>{{ order.order_number }}</td>
+                            <td>{{ order.pickup_address | truncate(30) }}</td>
+                            <td>{{ order.delivery_address | truncate(30) }}</td>
+                            <td>{{ order.actual_delivery.strftime('%Y-%m-%d %H:%M') if order.actual_delivery else 'N/A' }}</td>
+                            <td>
+                                {% if order.actual_pickup and order.actual_delivery %}
+                                    {% set diff = (order.actual_delivery - order.actual_pickup).total_seconds() / 60 %}
+                                    {% if diff < 60 %}
+                                        {{ diff | round }} minutes
+                                    {% else %}
+                                        {{ (diff / 60) | round(1) }} hours
+                                    {% endif %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center mt-3">
+                <a href="{{ url_for('drivers.orders') }}" class="btn btn-outline-primary">
+                    View All Deliveries <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>You haven't completed any deliveries yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Start Delivery Modal -->
+<div class="modal fade" id="startDeliveryModal" tabindex="-1" aria-labelledby="startDeliveryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="startDeliveryModalLabel">Start Delivery</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="start-delivery-form" method="POST">
+                    <input type="hidden" name="status" value="in_transit">
+                    
+                    <p>Are you ready to start this delivery? This will mark the order as "In Transit" and record the pickup time.</p>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (optional):</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Add any notes about the pickup"></textarea>
+                    </div>
+                    
+                    <!-- Hidden geolocation fields that will be filled by JavaScript -->
+                    <input type="hidden" name="lat" id="pickup-lat">
+                    <input type="hidden" name="lng" id="pickup-lng">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirm-start-delivery">Start Delivery</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Complete Delivery Modal -->
+<div class="modal fade" id="completeDeliveryModal" tabindex="-1" aria-labelledby="completeDeliveryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completeDeliveryModalLabel">Complete Delivery</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="complete-delivery-form" method="POST">
+                    <input type="hidden" name="status" value="delivered">
+                    
+                    <p>Confirm that you have completed this delivery. This will mark the order as "Delivered" and record the delivery time.</p>
+                    
+                    <div class="mb-3">
+                        <label for="delivery-notes" class="form-label">Delivery Notes:</label>
+                        <textarea class="form-control" id="delivery-notes" name="notes" rows="3" placeholder="Add any notes about the delivery"></textarea>
+                    </div>
+                    
+                    <!-- Hidden geolocation fields that will be filled by JavaScript -->
+                    <input type="hidden" name="lat" id="delivery-lat">
+                    <input type="hidden" name="lng" id="delivery-lng">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirm-complete-delivery">Complete Delivery</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Status Modal -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateStatusModalLabel">Update Status</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="update-status-form" method="POST" action="/driver/update-status">
+                    <div class="mb-3">
+                        <label for="driver-status" class="form-label">Your Status:</label>
+                        <select class="form-select" id="driver-status" name="status">
+                            <option value="available" {% if driver.status == 'available' %}selected{% endif %}>Available</option>
+                            <option value="busy" {% if driver.status == 'busy' %}selected{% endif %}>Busy</option>
+                            <option value="offline" {% if driver.status == 'offline' %}selected{% endif %}>Offline (End Shift)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-status-update">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize driver map
+        const driverId = document.getElementById('driver-map').getAttribute('data-driver-id');
+        const map = initMap('driver-map');
+        
+        if (driverId) {
+            displayDriverMap(map, driverId);
+            
+            // Store map reference for location updates
+            window.driverMap = map;
+            
+            // Get current location and initialize marker
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    // Add driver marker
+                    window.driverMarker = addMarker(
+                        map,
+                        lat,
+                        lng,
+                        'Your Location',
+                        createIcon('driver'),
+                        `<strong>Your Current Location</strong>`
+                    );
+                    
+                    // Update location on server
+                    updateDriverLocation(lat, lng);
+                });
+            }
+        }
+        
+        // Start Delivery Modal
+        const startDeliveryModal = document.getElementById('startDeliveryModal');
+        if (startDeliveryModal) {
+            startDeliveryModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const orderId = button.getAttribute('data-order-id');
+                const form = document.getElementById('start-delivery-form');
+                form.action = `/driver/update-status/${orderId}`;
+                
+                // Update location fields when modal is shown
+                if ('geolocation' in navigator) {
+                    navigator.geolocation.getCurrentPosition(position => {
+                        document.getElementById('pickup-lat').value = position.coords.latitude;
+                        document.getElementById('pickup-lng').value = position.coords.longitude;
+                    });
+                }
+            });
+            
+            // Handle confirm button
+            document.getElementById('confirm-start-delivery').addEventListener('click', function() {
+                document.getElementById('start-delivery-form').submit();
+            });
+        }
+        
+        // Complete Delivery Modal
+        const completeDeliveryModal = document.getElementById('completeDeliveryModal');
+        if (completeDeliveryModal) {
+            completeDeliveryModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const orderId = button.getAttribute('data-order-id');
+                const form = document.getElementById('complete-delivery-form');
+                form.action = `/driver/update-status/${orderId}`;
+                
+                // Update location fields when modal is shown
+                if ('geolocation' in navigator) {
+                    navigator.geolocation.getCurrentPosition(position => {
+                        document.getElementById('delivery-lat').value = position.coords.latitude;
+                        document.getElementById('delivery-lng').value = position.coords.longitude;
+                    });
+                }
+            });
+            
+            // Handle confirm button
+            document.getElementById('confirm-complete-delivery').addEventListener('click', function() {
+                document.getElementById('complete-delivery-form').submit();
+            });
+        }
+        
+        // Update Status
+        document.getElementById('confirm-status-update').addEventListener('click', function() {
+            document.getElementById('update-status-form').submit();
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,338 @@
+{% extends "layout.html" %}
+
+{% block title %}Manage Drivers - Hatloo{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="drivers-tab" data-bs-toggle="tab" data-bs-target="#drivers-content" type="button" role="tab" aria-controls="drivers-content" aria-selected="true">
+                <i class="fas fa-users me-2"></i>Drivers
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="vehicles-tab" data-bs-toggle="tab" data-bs-target="#vehicles-content" type="button" role="tab" aria-controls="vehicles-content" aria-selected="false">
+                <i class="fas fa-truck me-2"></i>Vehicles
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="add-driver-tab" data-bs-toggle="tab" data-bs-target="#add-driver-content" type="button" role="tab" aria-controls="add-driver-content" aria-selected="false">
+                <i class="fas fa-user-plus me-2"></i>Add Driver
+            </button>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="adminTabsContent">
+        <!-- Drivers Tab -->
+        <div class="tab-pane fade show active" id="drivers-content" role="tabpanel" aria-labelledby="drivers-tab">
+            <h3 class="mb-3">Driver Management</h3>
+            
+            {% if drivers %}
+            <div class="table-responsive">
+                <table class="table table-dark">
+                    <thead>
+                        <tr>
+                            <th>Driver</th>
+                            <th>License #</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Vehicle</th>
+                            <th>Location</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for driver in drivers %}
+                        <tr>
+                            <td>{{ driver.user.username }}</td>
+                            <td>{{ driver.license_number }}</td>
+                            <td>{{ driver.phone }}</td>
+                            <td>
+                                <span class="status-badge status-{{ driver.status }}">
+                                    {{ driver.status }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if driver.vehicle %}
+                                    {{ driver.vehicle.type.capitalize() }} ({{ driver.vehicle.license_plate }})
+                                {% else %}
+                                    <span class="text-muted">No vehicle assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if driver.current_location_lat and driver.current_location_lng %}
+                                    <a href="#" class="btn btn-sm btn-outline-info view-location-btn" 
+                                       data-lat="{{ driver.current_location_lat }}" 
+                                       data-lng="{{ driver.current_location_lng }}">
+                                        <i class="fas fa-map-marker-alt"></i> View
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">Not available</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#driverDetailsModal" data-driver-id="{{ driver.id }}">View Details</a></li>
+                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#assignVehicleModal" data-driver-id="{{ driver.id }}">Assign Vehicle</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deactivateDriverModal" data-driver-id="{{ driver.id }}">Deactivate</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No drivers found. Add your first driver using the "Add Driver" tab.
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Vehicles Tab -->
+        <div class="tab-pane fade" id="vehicles-content" role="tabpanel" aria-labelledby="vehicles-tab">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Vehicle Management</h3>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+                    <i class="fas fa-plus-circle me-2"></i>Add Vehicle
+                </button>
+            </div>
+            
+            {% if vehicles %}
+            <div class="table-responsive">
+                <table class="table table-dark">
+                    <thead>
+                        <tr>
+                            <th>License Plate</th>
+                            <th>Type</th>
+                            <th>Capacity (kg)</th>
+                            <th>Driver</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vehicle in vehicles %}
+                        <tr>
+                            <td>{{ vehicle.license_plate }}</td>
+                            <td>{{ vehicle.type.capitalize() }}</td>
+                            <td>{{ vehicle.capacity }}</td>
+                            <td>
+                                {% if vehicle.driver %}
+                                    {{ vehicle.driver.user.username }}
+                                {% else %}
+                                    <span class="text-muted">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ vehicle.status }}">
+                                    {{ vehicle.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editVehicleModal" data-vehicle-id="{{ vehicle.id }}">Edit Details</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-warning" href="#" data-bs-toggle="modal" data-bs-target="#maintenanceVehicleModal" data-vehicle-id="{{ vehicle.id }}">Mark for Maintenance</a></li>
+                                        <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#removeVehicleModal" data-vehicle-id="{{ vehicle.id }}">Remove Vehicle</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No vehicles found. Add your first vehicle by clicking the "Add Vehicle" button.
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Add Driver Tab -->
+        <div class="tab-pane fade" id="add-driver-content" role="tabpanel" aria-labelledby="add-driver-tab">
+            <h3 class="mb-3">Add New Driver</h3>
+            
+            <form method="POST" action="{{ url_for('admin.add_driver') }}">
+                {{ form.hidden_tag() }}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">{{ form.username.label }}</label>
+                            {{ form.username(class="form-control", id="username", placeholder="Enter username") }}
+                            {% for error in form.username.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">{{ form.email.label }}</label>
+                            {{ form.email(class="form-control", id="email", placeholder="Enter email address") }}
+                            {% for error in form.email.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">{{ form.password.label }}</label>
+                            {{ form.password(class="form-control", id="password", placeholder="Enter password") }}
+                            {% for error in form.password.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="license_number" class="form-label">{{ form.license_number.label }}</label>
+                            {{ form.license_number(class="form-control", id="license_number", placeholder="Enter driver's license number") }}
+                            {% for error in form.license_number.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">{{ form.phone.label }}</label>
+                            {{ form.phone(class="form-control", id="phone", placeholder="Enter contact phone number") }}
+                            {% for error in form.phone.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="alert alert-info mt-4">
+                            <i class="fas fa-info-circle me-2"></i>After creating a driver account, you can assign a vehicle from the Vehicles tab.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 mt-3">
+                    {{ form.submit(class="btn btn-primary btn-lg") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Vehicle Modal -->
+<div class="modal fade" id="addVehicleModal" tabindex="-1" aria-labelledby="addVehicleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addVehicleModalLabel">Add New Vehicle</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('admin.add_vehicle') }}">
+                    <!-- Vehicle form fields -->
+                    <div class="mb-3">
+                        <label for="driver_id" class="form-label">{{ vehicle_form.driver_id.label }}</label>
+                        {{ vehicle_form.driver_id(class="form-select") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="type" class="form-label">{{ vehicle_form.type.label }}</label>
+                        {{ vehicle_form.type(class="form-select") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="license_plate" class="form-label">{{ vehicle_form.license_plate.label }}</label>
+                        {{ vehicle_form.license_plate(class="form-control", placeholder="e.g. ABC-1234") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="capacity" class="form-label">{{ vehicle_form.capacity.label }}</label>
+                        {{ vehicle_form.capacity(class="form-control", placeholder="Enter capacity in kg") }}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ vehicle_form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Driver Details Modal -->
+<div class="modal fade" id="driverDetailsModal" tabindex="-1" aria-labelledby="driverDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="driverDetailsModalLabel">Driver Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="driver-details-content">
+                    <!-- Driver details will be loaded here -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Loading driver details...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Driver Location Modal -->
+<div class="modal fade" id="driverLocationModal" tabindex="-1" aria-labelledby="driverLocationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="driverLocationModalLabel">Driver Location</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="driver-location-map" style="height: 400px; border-radius: 8px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // View driver location
+        const viewLocationBtns = document.querySelectorAll('.view-location-btn');
+        viewLocationBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const lat = parseFloat(this.getAttribute('data-lat'));
+                const lng = parseFloat(this.getAttribute('data-lng'));
+                
+                // Show the modal
+                const locationModal = new bootstrap.Modal(document.getElementById('driverLocationModal'));
+                locationModal.show();
+                
+                // Initialize the map after the modal is shown
+                setTimeout(() => {
+                    const map = initMap('driver-location-map', lat, lng, 15);
+                    const driverIcon = createIcon('driver');
+                    addMarker(map, lat, lng, 'Driver Location', driverIcon, 'Current driver location');
+                }, 500);
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "layout.html" %}
+
+{% block title %}Create Order - Hatloo{% endblock %}
+
+{% block head_extra %}
+<style>
+    #route-planning-map {
+        height: 400px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .location-search {
+        margin-bottom: 15px;
+    }
+    .route-info {
+        background-color: var(--medium-gray);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .route-info p {
+        margin-bottom: 5px;
+    }
+    .point-type-selector {
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <h2 class="mb-4"><i class="fas fa-plus-circle me-2"></i>Create New Order</h2>
+    
+    <form method="POST" action="{{ url_for('orders.create') }}">
+        {{ form.hidden_tag() }}
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <h4>Route Information</h4>
+                    <p class="text-muted">Select pickup and delivery locations on the map or use the search function</p>
+                    
+                    <div class="point-type-selector">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="point-type" id="point-type-pickup" value="pickup" checked>
+                            <label class="form-check-label" for="point-type-pickup">Set Pickup Point</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="point-type" id="point-type-delivery" value="delivery">
+                            <label class="form-check-label" for="point-type-delivery">Set Delivery Point</label>
+                        </div>
+                    </div>
+
+                    <!-- Pickup location inputs -->
+                    <div class="mb-3">
+                        <label for="pickup_address" class="form-label">Pickup Address</label>
+                        <div class="input-group location-search">
+                            {{ form.pickup_address(class="form-control", id="pickup_address", placeholder="Enter pickup address") }}
+                            <button class="btn btn-primary" type="button" id="pickup-search-btn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        {% for error in form.pickup_address.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Hidden pickup coordinates fields -->
+                    {{ form.pickup_lat(type="hidden", id="pickup_lat") }}
+                    {{ form.pickup_lng(type="hidden", id="pickup_lng") }}
+                    
+                    <!-- Delivery location inputs -->
+                    <div class="mb-3">
+                        <label for="delivery_address" class="form-label">Delivery Address</label>
+                        <div class="input-group location-search">
+                            {{ form.delivery_address(class="form-control", id="delivery_address", placeholder="Enter delivery address") }}
+                            <button class="btn btn-primary" type="button" id="delivery-search-btn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        {% for error in form.delivery_address.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Hidden delivery coordinates fields -->
+                    {{ form.delivery_lat(type="hidden", id="delivery_lat") }}
+                    {{ form.delivery_lng(type="hidden", id="delivery_lng") }}
+                    
+                    <!-- Route information display -->
+                    <div class="route-info">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Estimated Distance:</strong> <span id="route-distance">0.00 km</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Estimated Time:</strong> <span id="route-time">0 min</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h4>Package Information</h4>
+                    
+                    <div class="mb-3">
+                        <label for="package_weight" class="form-label">Package Weight (kg)</label>
+                        {{ form.package_weight(class="form-control", id="package_weight", placeholder="Enter weight in kg") }}
+                        {% for error in form.package_weight.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="package_description" class="form-label">Package Description</label>
+                        {{ form.package_description(class="form-control", id="package_description", rows="3", placeholder="Describe your package (optional)") }}
+                        {% for error in form.package_description.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h4>Schedule</h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="scheduled_pickup" class="form-label">Scheduled Pickup</label>
+                                {{ form.scheduled_pickup(class="form-control", id="scheduled_pickup", type="datetime-local") }}
+                                {% for error in form.scheduled_pickup.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="scheduled_delivery" class="form-label">Scheduled Delivery</label>
+                                {{ form.scheduled_delivery(class="form-control", id="scheduled_delivery", type="datetime-local") }}
+                                {% for error in form.scheduled_delivery.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 mt-4">
+                    {{ form.submit(class="btn btn-primary btn-lg") }}
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <!-- Map container -->
+                <div id="route-planning-map"></div>
+                
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle me-2"></i>How to use the map</h5>
+                    <ol>
+                        <li>Select "Set Pickup Point" or "Set Delivery Point" above</li>
+                        <li>Click on the map to place the marker, or</li>
+                        <li>Search for an address using the search box</li>
+                        <li>Set both pickup and delivery points to see route information</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
