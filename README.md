@@ -40,8 +40,7 @@ LogisticsTracker/
 │   ├── css/
 │   ├── js/
 ├── README.md
-├── pyproject.toml
-└── .replit
+
 ```
 
 ## Setup & Installation
