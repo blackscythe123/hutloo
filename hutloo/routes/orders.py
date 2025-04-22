@@ -72,19 +72,21 @@ def create():
 def track():
     form = TrackOrderForm()
     order = None
-    
-    if form.validate_on_submit():
-        order = Order.query.filter_by(order_number=form.order_number.data).first()
-        if not order:
-            flash('Order not found', 'danger')
-    
-    # If order number provided in URL
+
+    # If order number provided in URL (GET)
     order_number = request.args.get('order_number')
     if order_number:
         order = Order.query.filter_by(order_number=order_number).first()
         if not order:
             flash('Order not found', 'danger')
-    
+        return render_template('orders/track.html', title='Track Order', form=form, order=order)
+
+    # If form submitted (POST)
+    if form.validate_on_submit():
+        order = Order.query.filter_by(order_number=form.order_number.data).first()
+        if not order:
+            flash('Order not found', 'danger')
+
     return render_template('orders/track.html', title='Track Order', form=form, order=order)
 
 @orders_bp.route('/api/track/<order_number>')
@@ -135,4 +137,23 @@ def api_track(order_number):
         'route': route_data
     }
     
+    return jsonify(data)
+
+@orders_bp.route('/api/order/<int:order_id>')
+@login_required
+def api_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    data = {
+        'order_number': order.order_number,
+        'customer': order.customer.username,
+        'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+        'pickup_address': order.pickup_address,
+        'delivery_address': order.delivery_address,
+        'status': order.status,
+        'driver': order.assigned_driver.user.username if order.assigned_driver else None,
+        'package_weight': order.package_weight,
+        'package_description': order.package_description,
+        'scheduled_delivery': order.scheduled_delivery.strftime('%Y-%m-%d %H:%M') if order.scheduled_delivery else None,
+        'actual_delivery': order.actual_delivery.strftime('%Y-%m-%d %H:%M') if order.actual_delivery else None,
+    }
     return jsonify(data)

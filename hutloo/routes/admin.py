@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from app import db
+from flask_mail import Message
+from app import db, mail
 from models import DeliveryStatus, User, Order, Driver, Vehicle, ROLE_DRIVER, ROLE_ADMIN
 from forms import DriverForm, VehicleForm
 
@@ -54,7 +55,8 @@ def dashboard():
 @admin_required
 def orders():
     orders = Order.query.order_by(Order.created_at.desc()).all()
-    return render_template('admin/orders.html', title='Manage Orders', orders=orders)
+    drivers = Driver.query.all()
+    return render_template('admin/orders.html', title='Manage Orders', orders=orders, drivers=drivers)
 
 @admin_bp.route('/drivers')
 @admin_required
@@ -78,6 +80,11 @@ def drivers():
 @admin_required
 def add_driver():
     form = DriverForm()
+    drivers = Driver.query.all()
+    vehicles = Vehicle.query.all()
+    vehicle_form = VehicleForm()
+    # Populate the drivers in the form select field for vehicle_form
+    vehicle_form.driver_id.choices = [(d.id, d.user.username) for d in drivers]
     if form.validate_on_submit():
         # Create new user with driver role
         user = User(
@@ -102,22 +109,32 @@ def add_driver():
         flash('Driver added successfully', 'success')
         return redirect(url_for('admin.drivers'))
     
-    return render_template('admin/drivers.html', title='Add Driver', form=form)
+    return render_template(
+        'admin/drivers.html',
+        title='Add Driver',
+        form=form,
+        drivers=drivers,
+        vehicles=vehicles,
+        vehicle_form=vehicle_form
+    )
 
 @admin_bp.route('/vehicles')
 @admin_required
 def vehicles():
     vehicles = Vehicle.query.all()
     drivers = Driver.query.all()
-    form = VehicleForm()
-    
+    form = DriverForm()
+    vehicle_form = VehicleForm()
     # Populate the drivers in the form select field
-    form.driver_id.choices = [(d.id, d.user.username) for d in drivers]
-    
-    return render_template('admin/drivers.html', 
-                           title='Manage Vehicles', 
-                           vehicles=vehicles,
-                           vehicle_form=form)
+    vehicle_form.driver_id.choices = [(d.id, d.user.username) for d in drivers]
+    return render_template(
+        'admin/drivers.html',
+        title='Manage Vehicles',
+        vehicles=vehicles,
+        drivers=drivers,
+        form=form,
+        vehicle_form=vehicle_form
+    )
 
 @admin_bp.route('/vehicles/add', methods=['POST'])
 @admin_required
@@ -147,6 +164,10 @@ def add_vehicle():
     
     return redirect(url_for('admin.vehicles'))
 
+def send_email(subject, recipients, body):
+    msg = Message(subject, recipients=recipients, body=body)
+    mail.send(msg)
+
 @admin_bp.route('/assign-order/<int:order_id>/<int:driver_id>', methods=['POST'])
 @admin_required
 def assign_order(order_id, driver_id):
@@ -165,5 +186,82 @@ def assign_order(order_id, driver_id):
     db.session.add(status)
     db.session.commit()
     
+    # --- Email notifications ---
+    # Email to driver
+    driver_email = driver.user.email
+    driver_msg = (
+        f"Dear {driver.user.username},\n\n"
+        f"You have been assigned a new delivery (Order #{order.order_number}).\n"
+        f"Pickup: {order.pickup_address}\n"
+        f"Delivery: {order.delivery_address}\n"
+        f"Please check your dashboard for details.\n\n"
+        f"Hatloo Logistics"
+    )
+    send_email(
+        subject=f"New Delivery Assigned: Order #{order.order_number}",
+        recipients=[driver_email],
+        body=driver_msg
+    )
+
+    # Email to customer
+    customer_email = order.customer.email
+    if driver.vehicle:
+        vehicle_info = f"Vehicle: {driver.vehicle.type.capitalize()} ({driver.vehicle.license_plate})\n"
+    else:
+        vehicle_info = "Vehicle: Not assigned yet\n"
+    customer_msg = (
+        f"Dear {order.customer.username},\n\n"
+        f"Your order (Order #{order.order_number}) has been assigned to a driver.\n"
+        f"Driver Name: {driver.user.username}\n"
+        f"Phone: {driver.phone}\n"
+        f"{vehicle_info}"
+        f"You can track your order in real-time from your dashboard.\n\n"
+        f"Hatloo Logistics"
+    )
+    send_email(
+        subject=f"Driver Assigned for Your Order #{order.order_number}",
+        recipients=[customer_email],
+        body=customer_msg
+    )
+    # --- End email notifications ---
+
     flash(f'Order {order.order_number} assigned to {driver.user.username}', 'success')
     return redirect(url_for('admin.orders'))
+
+@admin_bp.route('/update-status/<int:order_id>', methods=['POST'])
+@admin_required
+def update_order_status(order_id):
+    order = Order.query.get_or_404(order_id)
+    new_status = request.form.get('status')
+    notes = request.form.get('notes', '')
+    if new_status and new_status != order.status:
+        order.status = new_status
+        # Add status update
+        status_update = DeliveryStatus(
+            order_id=order.id,
+            status=new_status,
+            notes=notes or f"Status changed to {new_status} by admin"
+        )
+        db.session.add(status_update)
+        db.session.commit()
+        flash(f"Order status updated to {new_status}", "success")
+    else:
+        flash("Invalid status or no change made.", "warning")
+    return redirect(url_for('admin.orders'))
+
+@admin_bp.route('/api/driver/<int:driver_id>')
+@admin_required
+def api_driver(driver_id):
+    driver = Driver.query.get_or_404(driver_id)
+    data = {
+        'username': driver.user.username,
+        'email': driver.user.email,
+        'license_number': driver.license_number,
+        'phone': driver.phone,
+        'status': driver.status,
+        'vehicle': f"{driver.vehicle.type.capitalize()} ({driver.vehicle.license_plate})" if driver.vehicle else None,
+        'current_location_lat': driver.current_location_lat,
+        'current_location_lng': driver.current_location_lng,
+        'created_at': driver.user.created_at.strftime('%Y-%m-%d %H:%M') if hasattr(driver.user, 'created_at') else '',
+    }
+    return jsonify(data)

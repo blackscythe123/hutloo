@@ -1,7 +1,8 @@
 from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from app import db
+from flask_mail import Message
+from app import db, mail
 from models import User, Order, Driver, DeliveryStatus
 
 # Create drivers blueprint
@@ -81,7 +82,24 @@ def update_status(order_id):
         order.actual_pickup = datetime.utcnow()
     elif new_status == 'delivered' and not order.actual_delivery:
         order.actual_delivery = datetime.utcnow()
-    
+        # --- Send email to customer on delivery completion ---
+        customer = order.customer
+        if customer and customer.email:
+            msg = Message(
+                subject=f"Your Order #{order.order_number} Has Been Delivered",
+                recipients=[customer.email],
+                body=(
+                    f"Dear {customer.username},\n\n"
+                    f"Your order (Order #{order.order_number}) has been successfully delivered.\n"
+                    f"Delivered by: {driver.user.username}\n"
+                    f"Delivery Address: {order.delivery_address}\n"
+                    f"Delivered at: {order.actual_delivery.strftime('%Y-%m-%d %H:%M')}\n\n"
+                    f"Thank you for using Hatloo Logistics!"
+                )
+            )
+            mail.send(msg)
+        # --- End email ---
+
     # Create status update record
     status_update = DeliveryStatus(
         order_id=order.id,
@@ -112,3 +130,16 @@ def update_location():
         return jsonify({'success': True})
     
     return jsonify({'success': False, 'error': 'Invalid location data'}), 400
+
+@drivers_bp.route('/update-driver-status', methods=['POST'])
+@driver_required
+def update_driver_status():
+    driver = Driver.query.filter_by(user_id=current_user.id).first()
+    new_status = request.form.get('status')
+    if new_status:
+        driver.status = new_status
+        db.session.commit()
+        flash('Status updated successfully.', 'success')
+    else:
+        flash('Invalid status.', 'danger')
+    return redirect(url_for('drivers.dashboard'))

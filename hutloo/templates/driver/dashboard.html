@@ -350,20 +350,19 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="update-status-form" method="POST" action="/driver/update-status">
-                    <div class="mb-3">
-                        <label for="driver-status" class="form-label">Your Status:</label>
-                        <select class="form-select" id="driver-status" name="status">
-                            <option value="available" {% if driver.status == 'available' %}selected{% endif %}>Available</option>
-                            <option value="busy" {% if driver.status == 'busy' %}selected{% endif %}>Busy</option>
-                            <option value="offline" {% if driver.status == 'offline' %}selected{% endif %}>Offline (End Shift)</option>
-                        </select>
-                    </div>
+                <form method="POST" action="{{ url_for('drivers.update_driver_status') }}">
+                    <label>Your Status:</label>
+                    <select name="status" class="form-select">
+                        <option value="available" {% if driver.status == 'available' %}selected{% endif %}>Available</option>
+                        <option value="offline" {% if driver.status == 'offline' %}selected{% endif %}>Offline (End Shift)</option>
+                        <option value="on_break" {% if driver.status == 'on_break' %}selected{% endif %}>On Break</option>
+                        <!-- Add other statuses as needed -->
+                    </select>
+                    <button type="submit" class="btn btn-primary">Update</button>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirm-status-update">Update</button>
             </div>
         </div>
     </div>
