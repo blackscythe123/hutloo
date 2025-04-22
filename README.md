@@ -15,7 +15,7 @@ Hatloo is a logistics optimization platform built with Flask. It provides real-t
 ## Project Structure
 
 ```
-LogisticsTracker/
+hutloo/
 ├── app.py
 ├── main.py
 ├── models.py
@@ -48,7 +48,7 @@ LogisticsTracker/
 1. **Clone the repository:**
     ```bash
     git clone <repo-url>
-    cd LogisticsTracker
+    cd hutloo
     ```
 
 2. **Install dependencies:**
