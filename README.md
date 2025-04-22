@@ -92,4 +92,4 @@ MIT License
 
 ---
 
-**Hatloo Logistics Tracker** &copy; 2023-present
+**Hatloo Logistics Tracker** &copy; 2025-present
